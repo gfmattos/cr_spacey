@@ -2,23 +2,17 @@
 Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)
 """
-from __future__ import annotations
+
+from typing import Union
 
 import numpy as np
 
-from pandas._libs.lib import i8max
-from pandas._libs.tslibs import (
-    BaseOffset,
-    OutOfBoundsDatetime,
-    Timedelta,
-    Timestamp,
-    iNaT,
-)
+from pandas._libs.tslibs import BaseOffset, OutOfBoundsDatetime, Timedelta, Timestamp
 
 
 def generate_regular_range(
-    start: Timestamp | Timedelta,
-    end: Timestamp | Timedelta,
+    start: Union[Timestamp, Timedelta],
+    end: Union[Timestamp, Timedelta],
     periods: int,
     freq: BaseOffset,
 ):
@@ -41,20 +35,20 @@ def generate_regular_range(
     -------
     ndarray[np.int64] Representing nanoseconds.
     """
-    istart = start.value if start is not None else None
-    iend = end.value if end is not None else None
+    start = start.value if start is not None else None
+    end = end.value if end is not None else None
     stride = freq.nanos
 
     if periods is None:
-        b = istart
+        b = start
         # cannot just use e = Timestamp(end) + 1 because arange breaks when
         # stride is too large, see GH10887
-        e = b + (iend - b) // stride * stride + stride // 2 + 1
-    elif istart is not None:
-        b = istart
+        e = b + (end - b) // stride * stride + stride // 2 + 1
+    elif start is not None:
+        b = start
         e = _generate_range_overflow_safe(b, periods, stride, side="start")
-    elif iend is not None:
-        e = iend + stride
+    elif end is not None:
+        e = end + stride
         b = _generate_range_overflow_safe(e, periods, stride, side="end")
     else:
         raise ValueError(
@@ -104,7 +98,7 @@ def _generate_range_overflow_safe(
     # GH#14187 raise instead of incorrectly wrapping around
     assert side in ["start", "end"]
 
-    i64max = np.uint64(i8max)
+    i64max = np.uint64(np.iinfo(np.int64).max)
     msg = f"Cannot generate range with {side}={endpoint} and periods={periods}"
 
     with np.errstate(over="raise"):
@@ -156,14 +150,7 @@ def _generate_range_overflow_safe_signed(
         addend = np.int64(periods) * np.int64(stride)
         try:
             # easy case with no overflows
-            result = np.int64(endpoint) + addend
-            if result == iNaT:
-                # Putting this into a DatetimeArray/TimedeltaArray
-                #  would incorrectly be interpreted as NaT
-                raise OverflowError
-            # error: Incompatible return value type (got "signedinteger[_64Bit]",
-            # expected "int")
-            return result  # type: ignore[return-value]
+            return np.int64(endpoint) + addend
         except (FloatingPointError, OverflowError):
             # with endpoint negative and addend positive we risk
             #  FloatingPointError; with reversed signed we risk OverflowError
@@ -177,16 +164,11 @@ def _generate_range_overflow_safe_signed(
             # watch out for very special case in which we just slightly
             #  exceed implementation bounds, but when passing the result to
             #  np.arange will get a result slightly within the bounds
-
-            # error: Incompatible types in assignment (expression has type
-            # "unsignedinteger[_64Bit]", variable has type "signedinteger[_64Bit]")
-            result = np.uint64(endpoint) + np.uint64(addend)  # type: ignore[assignment]
-            i64max = np.uint64(i8max)
+            result = np.uint64(endpoint) + np.uint64(addend)
+            i64max = np.uint64(np.iinfo(np.int64).max)
             assert result > i64max
             if result <= i64max + np.uint64(stride):
-                # error: Incompatible return value type (got "unsignedinteger", expected
-                # "int")
-                return result  # type: ignore[return-value]
+                return result
 
     raise OutOfBoundsDatetime(
         f"Cannot generate range with {side}={endpoint} and periods={periods}"

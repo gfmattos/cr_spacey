@@ -1,10 +1,7 @@
 import pytest
 
 from pandas._libs.tslibs import to_offset
-from pandas._libs.tslibs.period import (
-    period_asfreq,
-    period_ordinal,
-)
+from pandas._libs.tslibs.period import period_asfreq, period_ordinal
 
 
 def get_freq_code(freqstr: str) -> int:

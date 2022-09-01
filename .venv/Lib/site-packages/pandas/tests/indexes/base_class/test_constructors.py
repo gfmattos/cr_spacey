@@ -1,11 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    MultiIndex,
-)
-import pandas._testing as tm
+from pandas import Index, MultiIndex
 
 
 class TestIndexConstructor:
@@ -33,9 +29,9 @@ class TestIndexConstructor:
     def test_constructor_wrong_kwargs(self):
         # GH #19348
         with pytest.raises(TypeError, match="Unexpected keyword arguments {'foo'}"):
-            with tm.assert_produces_warning(FutureWarning):
-                Index([], foo="bar")
+            Index([], foo="bar")
 
+    @pytest.mark.xfail(reason="see GH#21311: Index doesn't enforce dtype argument")
     def test_constructor_cast(self):
         msg = "could not convert string to float"
         with pytest.raises(ValueError, match=msg):

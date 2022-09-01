@@ -63,13 +63,30 @@ def test_series_mask_boolean(values, dtype, mask, indexer_class, frame):
     tm.assert_equal(result, expected)
 
 
-def test_na_treated_as_false(frame_or_series, indexer_sli):
+@pytest.mark.parametrize("frame", [True, False])
+def test_na_treated_as_false(frame):
     # https://github.com/pandas-dev/pandas/issues/31503
-    obj = frame_or_series([1, 2, 3])
+    s = pd.Series([1, 2, 3], name="name")
+
+    if frame:
+        s = s.to_frame()
 
     mask = pd.array([True, False, None], dtype="boolean")
 
-    result = indexer_sli(obj)[mask]
-    expected = indexer_sli(obj)[mask.fillna(False)]
+    result = s[mask]
+    expected = s[mask.fillna(False)]
 
-    tm.assert_equal(result, expected)
+    result_loc = s.loc[mask]
+    expected_loc = s.loc[mask.fillna(False)]
+
+    result_iloc = s.iloc[mask]
+    expected_iloc = s.iloc[mask.fillna(False)]
+
+    if frame:
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result_loc, expected_loc)
+        tm.assert_frame_equal(result_iloc, expected_iloc)
+    else:
+        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result_loc, expected_loc)
+        tm.assert_series_equal(result_iloc, expected_iloc)

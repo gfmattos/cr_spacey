@@ -1,10 +1,6 @@
 import pytest
 
-from pandas import (
-    Index,
-    MultiIndex,
-    Series,
-)
+from pandas import Index, MultiIndex, Series
 import pandas._testing as tm
 
 

@@ -1,7 +1,4 @@
-from pandas import (
-    Period,
-    PeriodIndex,
-)
+from pandas import Period, PeriodIndex
 
 
 def test_is_monotonic_increasing():
